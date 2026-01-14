@@ -1,0 +1,9 @@
+Flask
+Flask-CORS
+numpy
+pandas
+scikit-learn
+joblib
+python-dotenv
+gunicorn
+werkzeug
