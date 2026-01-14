@@ -1,4 +1,6 @@
 import math
+import os
+import pickle
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
@@ -260,6 +262,116 @@ def train_all_models(seed: int = 7) -> Dict[str, ModelBundle]:
     metrics, _ = _make_metric_bundle(ann, y_test, X_test, is_regression=False)
     models["ann"] = ModelBundle(ann, False, metrics)
 
+    return models
+
+
+def save_models_to_disk(models: Dict[str, ModelBundle], models_dir: str = "models"):
+    """Save all trained models to disk as .pkl files."""
+    os.makedirs(models_dir, exist_ok=True)
+    
+    for model_name, model_bundle in models.items():
+        filename = f"{model_name.replace('_', '-')}.pkl"
+        filepath = os.path.join(models_dir, filename)
+        
+        with open(filepath, 'wb') as f:
+            pickle.dump(model_bundle, f)
+        
+        print(f"✓ Saved {model_name} to {filepath}")
+    
+    print(f"\n✓ All {len(models)} models saved successfully!")
+
+
+def load_models_from_disk(models_dir: str = "models", only_logistic: bool = False) -> Dict[str, ModelBundle]:
+    """Load trained models from disk."""
+    models = {}
+    
+    if not os.path.exists(models_dir):
+        return None
+    
+    if only_logistic:
+        # Load only logistic regression model
+        model_files = {
+            "logistic-regression.pkl": "logistic_regression",
+        }
+    else:
+        # Load all models
+        model_files = {
+            "logistic-regression.pkl": "logistic_regression",
+            "linear-regression.pkl": "linear_regression",
+            "polynomial-regression.pkl": "polynomial_regression",
+            "knn.pkl": "knn",
+            "svm.pkl": "svm",
+            "ann.pkl": "ann",
+        }
+    
+    loaded_count = 0
+    for filename, model_key in model_files.items():
+        filepath = os.path.join(models_dir, filename)
+        
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, 'rb') as f:
+                    models[model_key] = pickle.load(f)
+                loaded_count += 1
+            except Exception as e:
+                print(f"   ❌ Failed to load {model_key}: {e}")
+        else:
+            if only_logistic:
+                return None
+    
+    if loaded_count == 0:
+        return None
+    
+    return models
+
+
+def train_logistic_model(seed: int = 7) -> Dict[str, ModelBundle]:
+    """Train only the logistic regression model."""
+    data = build_datasets(seed=seed)
+    X_train = data["X_train"]
+    X_test = data["X_test"]
+    y_train = data["y_train"]
+    y_test = data["y_test"]
+    preprocessor = data["preprocessor"]
+
+    models: Dict[str, ModelBundle] = {}
+
+    logistic = Pipeline(
+        steps=[
+            ("pre", preprocessor),
+            (
+                "model",
+                LogisticRegression(
+                    max_iter=400,
+                    class_weight="balanced",
+                    solver="liblinear",
+                    random_state=seed,
+                ),
+            ),
+        ]
+    )
+    logistic.fit(X_train, y_train)
+    metrics, _ = _make_metric_bundle(logistic, y_test, X_test, is_regression=False)
+    models["logistic_regression"] = ModelBundle(logistic, False, metrics)
+
+    return models
+
+
+def get_or_train_models(models_dir: str = "models", seed: int = 7, only_logistic: bool = True) -> Dict[str, ModelBundle]:
+    """Load models from disk if available, otherwise train and save them."""
+    models = load_models_from_disk(models_dir, only_logistic=only_logistic)
+    
+    if models is None:
+        print("   ⚙️  Training model from scratch...\n")
+        if only_logistic:
+            models = train_logistic_model(seed=seed)
+        else:
+            models = train_all_models(seed=seed)
+        
+        print("\n   💾 Saving model to disk...")
+        save_models_to_disk(models, models_dir)
+        print("")
+    
     return models
 
 

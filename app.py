@@ -3,14 +3,41 @@ from typing import Dict, Tuple
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from model_utils import MODEL_DESCRIPTIONS, MODEL_LABELS, summarize_prediction, train_all_models
+from model_utils import MODEL_DESCRIPTIONS, MODEL_LABELS, summarize_prediction, get_or_train_models
 
 app = Flask(__name__)
 CORS(app)
 
-# Only use Logistic Regression model
-models = train_all_models()
+# Load only Logistic Regression model
+print("\n" + "=" * 70)
+print("CARDIOVASCULAR RISK ASSESSMENT API - SERVER INITIALIZATION")
+print("=" * 70)
+print("\n🔄 Loading model...")
+
+models = get_or_train_models()
 LOGISTIC_MODEL_KEY = 'logistic_regression'
+
+# Display loaded model information
+if LOGISTIC_MODEL_KEY in models:
+    model = models[LOGISTIC_MODEL_KEY]
+    print("\n✅ MODEL LOADED SUCCESSFULLY!")
+    print("-" * 70)
+    print(f"Model Name:        {MODEL_LABELS[LOGISTIC_MODEL_KEY]}")
+    print(f"Model Type:        {'Regression' if model.is_regression else 'Classification'}")
+    print(f"Description:       {MODEL_DESCRIPTIONS[LOGISTIC_MODEL_KEY]}")
+    print("\n📊 Model Performance Metrics:")
+    print(f"   • Accuracy:     {model.metrics['accuracy']:.2%}")
+    print(f"   • Precision:    {model.metrics['precision']:.2%}")
+    print(f"   • Recall:       {model.metrics['recall']:.2%}")
+    print(f"   • F1 Score:     {model.metrics['f1']:.2%}")
+    print("-" * 70)
+    print("\n✅ Server is ready to accept requests!")
+    print(f"   • Health Check:  GET  http://localhost:5000/health")
+    print(f"   • Prediction:    POST http://localhost:5000/predict")
+    print("\n" + "=" * 70 + "\n")
+else:
+    print("\n❌ ERROR: Logistic Regression model not found!")
+    print("=" * 70 + "\n")
 
 
 REQUIRED_FIELDS = [
