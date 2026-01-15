@@ -12,7 +12,7 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler, FunctionTransformer
 from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 
@@ -54,6 +54,11 @@ RISK_LEVELS = [
     (0.33, 0.66, "Medium"),
     (0.66, 1.01, "High"),
 ]
+
+
+def _identity_transform(X):
+    """Identity transformer for pickling compatibility."""
+    return X
 
 
 def sigmoid(x: np.ndarray) -> np.ndarray:
@@ -121,7 +126,7 @@ def build_datasets(seed: int = 7):
     binary_features = ["gender", "diabetes", "smoking", "obesity"]
 
     numeric_transformer = Pipeline(steps=[("scaler", StandardScaler())])
-    binary_transformer = "passthrough"
+    binary_transformer = FunctionTransformer(_identity_transform, validate=False)
 
     preprocessor = ColumnTransformer(
         transformers=[
