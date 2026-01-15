@@ -79,6 +79,19 @@ def validate_payload(payload: Dict[str, object]) -> Tuple[bool, str]:
     return True, ""
 
 
+@app.route("/", methods=["GET"])
+def index():
+    return jsonify({
+        "status": "ok",
+        "message": "Cardiovascular Risk Assessment API",
+        "version": "1.0",
+        "endpoints": {
+            "health": "/health",
+            "predict": "/predict"
+        }
+    })
+
+
 @app.route("/health", methods=["GET"])
 def health():
     return {"status": "ok", "model": MODEL_LABELS[LOGISTIC_MODEL_KEY]}
